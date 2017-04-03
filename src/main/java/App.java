@@ -14,13 +14,13 @@ import java.util.Random;
 
 public class App {
 
-    private static String SCRIPT_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/script";
+    private static String SCRIPT_PATH = "src/main/resources/script";
 
-    private static String NICKNAMES_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/nicknames";
-    private static String EMAILS_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/emails";
-    private static String PASSWORDS_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/passwords";
-    private static String FIRST_NAMES_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/firstNames";
-    private static String LAST_NAMES_PATH = "/home/ihb/Documents/Projects/IdeaProjects/dbFiller/src/main/resources/lastNames";
+    private static String NICKNAMES_PATH = "src/main/resources/nicknames";
+    private static String EMAILS_PATH = "src/main/resources/emails";
+    private static String PASSWORDS_PATH = "src/main/resources/passwords";
+    private static String FIRST_NAMES_PATH = "src/main/resources/firstNames";
+    private static String LAST_NAMES_PATH = "src/main/resources/lastNames";
 
     private static File file;
 
@@ -195,20 +195,37 @@ public class App {
         List<String> nicknames = new ArrayList<>(FileUtils.readLines(new File(NICKNAMES_PATH), Charset.defaultCharset()));
         List<String> passwords = new ArrayList<>(FileUtils.readLines(new File(PASSWORDS_PATH), Charset.defaultCharset()));
         List<String> emails = new ArrayList<>(FileUtils.readLines(new File(EMAILS_PATH), Charset.defaultCharset()));
-        List<String> firstNames = new ArrayList<>(FileUtils.readLines(new File(EMAILS_PATH), Charset.defaultCharset()));
-        List<String> lastNames = new ArrayList<>(FileUtils.readLines(new File(EMAILS_PATH), Charset.defaultCharset()));
+        List<String> firstNames = new ArrayList<>(FileUtils.readLines(new File(FIRST_NAMES_PATH), Charset.defaultCharset()));
+        List<String> lastNames = new ArrayList<>(FileUtils.readLines(new File(LAST_NAMES_PATH), Charset.defaultCharset()));
 
         long timeFrom = 1420070400; // 01/01/2015 @ 12:00am (UTC)
         long timeTo = 1483228800; // 01/01/2017 @ 12:00am (UTC)
 
+        StringBuilder query = new StringBuilder("INSERT INTO user (id, nickname, password, email, first_name, last_name, date_of_registration, date_of_registration)\n"
+                + "VALUES ");
 
 
-        String query = "INSERT INTO country (country.id, country.name, country.code)\n" +
-                "VALUES (1,'a',3),\n" +
-                "    (4,'5',6),\n" +
-                "    (7,'8',9);";
 
-        FileUtils.write(file, query, Charset.defaultCharset(), true);
+        for(int i=0; i<100; i++){
+
+            long regTime = rand.nextLong()%(timeTo-timeFrom)+timeFrom;
+            long lastTime = (regTime+rand.nextLong()%(timeTo-regTime));
+
+            query.append("(").append(i).append(",'").append(nicknames.get(i * 40)).append("','")
+                    .append(passwords.get(i * 10 % passwords.size())).append("','")
+                    .append(emails.get(i * 10 % emails.size())).append("','")
+                    .append(firstNames.get(i * 10 % firstNames.size())).append("','")
+                    .append(lastNames.get(i * 10 % lastNames.size())).append("',")
+                    .append(regTime).append(",").append(lastTime).append(")");
+
+            if(i!=99){
+                query.append(",\n");
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, query.toString(), Charset.defaultCharset(), true);
     }
 }
 
