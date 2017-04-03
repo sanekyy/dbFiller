@@ -1,0 +1,122 @@
+DROP DATABASE poll;
+CREATE DATABASE poll;
+USE poll;
+CREATE TABLE IF NOT EXISTS
+    `user` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `nickname` VARCHAR(100) NOT NULL UNIQUE,
+        `password` VARCHAR(100) NOT NULL,
+        `email` VARCHAR(100) NOT NULL UNIQUE,
+        `first_name` VARCHAR(100) NOT NULL,
+        `last_name` VARCHAR(100) NOT NULL,
+        `date_of_registration` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `date_of_last_visit` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(`id`)
+    );
+CREATE TABLE IF NOT EXISTS
+    `country` (
+        `id` SMALLINT(3) NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(100) NOT NULL,
+        `code` SMALLINT(3) UNSIGNED NOT NULL UNIQUE,
+        PRIMARY KEY(`id`)
+    );
+CREATE TABLE IF NOT EXISTS
+    `questionnaire` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `user_id` INT NOT NULL UNIQUE,
+        `age` TINYINT(3) UNSIGNED,
+        `sex` TINYINT(1) UNSIGNED,
+        `country_id` SMALLINT(3),
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `preference` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(100) NOT NULL UNIQUE,
+        PRIMARY KEY(`id`)
+    );
+CREATE TABLE IF NOT EXISTS
+    `user_preferences` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `preference_id` INT,
+        `user_id` INT NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (preference_id) REFERENCES preference(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `device` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `type` VARCHAR(100) NOT NULL,
+        `name` VARCHAR(100) NOT NULL,
+        PRIMARY KEY(`id`)
+    );
+CREATE TABLE IF NOT EXISTS
+    `token` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `user_id` INT NOT NULL,
+        `key` VARCHAR(100) NOT NULL UNIQUE,
+        `end_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `creation_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `device_id` INT NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (device_id) REFERENCES device(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `permission` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(100) NOT NULL UNIQUE,
+        PRIMARY KEY(`id`)
+    );
+CREATE TABLE IF NOT EXISTS
+    `token_permissions` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `token_id` INT NOT NULL,
+        `permission_id` INT NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (token_id) REFERENCES token(id),
+        FOREIGN KEY (permission_id) REFERENCES permission(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `post` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `user_id` INT NOT NULL,
+        `description` TEXT(300),
+        `end_time` TIMESTAMP NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `variant` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `variant_path` TEXT(300) NOT NULL,
+        `publication_time` TIMESTAMP,
+        `post_id` INT NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (post_id) REFERENCES post(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `comment` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `user_id` INT NOT NULL,
+        `text` TEXT(300) NOT NULL,
+        `comment_id` INT,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (comment_id) REFERENCES comment(id)
+    );
+CREATE TABLE IF NOT EXISTS
+    `vote` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `user_id` INT NOT NULL,
+        `variant_id` INT NOT NULL,
+        PRIMARY KEY(`id`),
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (variant_id) REFERENCES variant(id)
+    );
+INSERT INTO country (country.id, country.name, country.code)
+VALUES (1,`a`,3),
+    (4,`5`,6),
+    (7,`8`,9);
