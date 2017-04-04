@@ -2,6 +2,7 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -26,19 +27,49 @@ public class App {
 
     private static String PREFERENCE_NAMES_PATH = "src/main/resources/preference/names";
 
+    private static String POST_DESCRIPTIONS_PATH = "src/main/resources/post/descriptions";
+
+    private static String COMMENT_TEXT_PATH = POST_DESCRIPTIONS_PATH;
+
+
+
     private static int USER_COUNT = 100;
     private static int COUNTRY_COUNT = 10;
     private static int QUESTIONNAIRE_COUNT = USER_COUNT;
     private static int PREFERENCE_COUNT = 5;
+    private static int POST_COUNT = 0; // calculate in runtime
+    private static int VARIANT_COUNT = 0; // calculate in runtime
+    private static int COMMENT_COUNT = 0; // calculate in runtime
 
     private static int USER_PREFERENCES_COUNT_DELTA = 5;
     private static int USER_PREFERENCES_COUNT_FROM = 1;
 
-    static Random rand = new Random(System.currentTimeMillis());
+    private static int POST_COUNT_DELTA = 51;
+    private static int POST_COUNT_FROM = 25;
+
+    private static int VARIANT_COUNT_DELTA = 5;
+    private static int VARIANT_COUNT_FROM = 1;
+
+    private static int VOTE_COUNT_DELTA = 11;
+    private static int VOTE_COUNT_FROM = 10;
+
+    private static int COMMENT_COUNT_DELTA = 10;
+    private static int COMMENT_COUNT_FROM = 1;
+
+
+    private static Random rand = new Random(System.currentTimeMillis());
+
+    private static long timeFrom = 1262304000; // 01/01/2010 @ 12:00am (UTC)
+    private static long timeTo = 1483228800; // 01/01/2017 @ 12:00am (UTC)
 
     public static void main(String[] args) throws IOException {
 
         initFile();
+
+        FileUtils.write(new File(POST_DESCRIPTIONS_PATH+1),
+                FileUtils.readFileToString(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset()).replaceAll("[\\[\\]\"{}()']",""),
+                Charset.defaultCharset(), false);
+
 
         clearDB();
         createTables();
@@ -48,6 +79,11 @@ public class App {
         generateQuestionnaire();
         generatePreferences();
         generateUserPreferences();
+        generatePosts();
+        generateVariants();
+        generateVotes();
+        generateComment();
+
 
 
     }
@@ -170,7 +206,7 @@ public class App {
         String variant = "CREATE TABLE IF NOT EXISTS\n" +
                 "    `variant` (\n" +
                 "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `variant_path` TEXT(300) NOT NULL,\n" +
+                "        `path` TEXT(300) NOT NULL,\n" +
                 "        `publication_time` TIMESTAMP,\n" +
                 "        `post_id` INT NOT NULL,\n" +
                 "        PRIMARY KEY(`id`),\n" +
@@ -212,9 +248,6 @@ public class App {
         List<String> firstNames = new ArrayList<>(FileUtils.readLines(new File(USER_FIRST_NAMES_PATH), Charset.defaultCharset()));
         List<String> lastNames = new ArrayList<>(FileUtils.readLines(new File(USER_LAST_NAMES_PATH), Charset.defaultCharset()));
 
-        long timeFrom = 1262304000; // 01/01/2010 @ 12:00am (UTC)
-        long timeTo = 1483228800; // 01/01/2017 @ 12:00am (UTC)
-
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         StringBuilder query = new StringBuilder("INSERT INTO user (id, nickname, password, email, first_name, last_name, date_of_registration, date_of_last_visit)\n"
@@ -222,6 +255,7 @@ public class App {
 
 
         for(int i=0; i<USER_COUNT; i++){
+
 
             long regTime = Math.abs(rand.nextLong())%(timeTo-timeFrom)+timeFrom;
             long lastTime = (regTime+Math.abs(rand.nextLong())%(timeTo-regTime));
@@ -317,7 +351,7 @@ public class App {
 
     private static void generateUserPreferences() throws IOException {
 
-        int prefCount;
+        int userPrefCount;
         int id=1;
 
         String res = "";
@@ -326,10 +360,10 @@ public class App {
                 + "VALUES ");
 
         for(int i=0; i<USER_COUNT; i++){
-            prefCount = Math.abs(rand.nextInt())%USER_PREFERENCES_COUNT_DELTA+USER_PREFERENCES_COUNT_FROM;
+            userPrefCount = Math.abs(rand.nextInt())%USER_PREFERENCES_COUNT_DELTA+USER_PREFERENCES_COUNT_FROM;
             Set<Integer> preferences = new HashSet<>();
 
-            while(preferences.size()<prefCount){
+            while(preferences.size()<userPrefCount){
                 preferences.add(Math.abs(rand.nextInt())%PREFERENCE_COUNT+1);
             }
 
@@ -350,6 +384,185 @@ public class App {
         query.append(";");
 
         FileUtils.write(file, res, Charset.defaultCharset(), true);
+    }
+
+    private static void generatePosts() throws IOException {
+
+        int userPostCount;
+        int id=1;
+        List<String> descriptions = FileUtils.readLines(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset());
+
+        String res = "";
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        StringBuilder query = new StringBuilder("INSERT INTO post (id, user_id, description, end_time)\n"
+                + "VALUES ");
+
+        for(int i=0; i<USER_COUNT; i++){
+            userPostCount = Math.abs(rand.nextInt())%POST_COUNT_DELTA+POST_COUNT_FROM;
+            Set<String> userPostDescriptions = new HashSet<>();
+
+            POST_COUNT+=userPostCount;
+
+            while(userPostDescriptions.size()<userPostCount){
+                userPostDescriptions.add(descriptions.get(Math.abs(rand.nextInt())%descriptions.size()));
+            }
+
+
+            for(String description : userPostDescriptions){
+                long endTime = Math.abs(rand.nextLong())%(timeTo-timeFrom)+timeFrom;
+                String endTimeStr = dateFormat.format(new Date(endTime*1000));
+
+                query.append("('").append(id).append("','").append(i+1).append("','")
+                .append(description.trim()).append("','").append(endTimeStr).append("'),\n");
+
+                id++;
+            }
+            if(i==USER_COUNT-1){
+                res = query.toString().substring(0, query.toString().length()-2);
+                res+=";";
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, res, Charset.defaultCharset(), true);
+    }
+
+    private static void generateVariants() throws IOException {
+
+        int postVariantCount;
+        int id=1;
+        //List<String> paths = FileUtils.readLines(new File(VARIANT_PATHS_PATH), Charset.defaultCharset());
+
+        String res = "";
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        StringBuilder query = new StringBuilder("INSERT INTO variant (id, path, publication_time, post_id)\n"
+                + "VALUES ");
+
+        for(int i=0; i<POST_COUNT; i++){
+            postVariantCount = Math.abs(rand.nextInt())%VARIANT_COUNT_DELTA+VARIANT_COUNT_FROM;
+            Set<String> postVariantPaths = new HashSet<>();
+
+            VARIANT_COUNT+=postVariantCount;
+
+            while(postVariantPaths.size()<postVariantCount){
+                postVariantPaths.add("C://Variant/"+ new BigInteger(130, rand).toString(32));//paths.get(Math.abs(rand.nextInt())%paths.size()));
+            }
+
+
+            for(String path : postVariantPaths){
+                long publicationTime = Math.abs(rand.nextLong())%(timeTo-timeFrom)+timeFrom;
+                String publicationDateStr = dateFormat.format(new Date(publicationTime*1000));
+
+                query.append("('").append(id).append("','").append(path.trim()).append("','")
+                        .append(publicationDateStr).append("','").append(i+1).append("'),\n");
+
+                id++;
+            }
+            if(i==POST_COUNT-1){
+                res = query.toString().substring(0, query.toString().length()-2);
+                res+=";";
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, res, Charset.defaultCharset(), true);
+    }
+
+    private static void generateVotes() throws IOException {
+
+        int variantVoteCount;
+        int id=1;
+        
+        String res = "";
+        
+        StringBuilder query = new StringBuilder("INSERT INTO vote (id, user_id, variant_id)\n"
+                + "VALUES ");
+
+        for(int i=0; i<VARIANT_COUNT; i++){
+            variantVoteCount = Math.abs(rand.nextInt())%VOTE_COUNT_DELTA+VOTE_COUNT_FROM;
+            Set<Integer> variantVoteUserId = new HashSet<>();
+
+            while(variantVoteUserId.size()<variantVoteCount){
+                variantVoteUserId.add(Math.abs(rand.nextInt())%USER_COUNT+1);
+            }
+
+
+            for(Integer userId : variantVoteUserId){
+
+                query.append("('").append(id).append("','").append(userId).append("','")
+                        .append(i+1).append("'),\n");
+
+                id++;
+            }
+            if(i==VARIANT_COUNT-1){
+                res = query.toString().substring(0, query.toString().length()-2);
+                res+=";";
+            } else {
+                res = query.toString();
+            }
+
+            FileUtils.write(file, res, Charset.defaultCharset(), true);
+
+            res="";
+            query = new StringBuilder();
+        }
+    }
+
+    private static void generateComment() throws IOException {
+
+        int variantCommentCount, userId, commentId;
+        List<String> descriptions = FileUtils.readLines(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset());
+        int id=1;
+
+        String res = "";
+
+        StringBuilder query = new StringBuilder("INSERT INTO comment (id, user_id, text, comment_id)\n"
+                + "VALUES ");
+
+        for(int i=0; i<VARIANT_COUNT; i++){
+            variantCommentCount = Math.abs(rand.nextInt())%COMMENT_COUNT_DELTA+COMMENT_COUNT_FROM;
+            Set<String> commentTexts = new HashSet<>();
+
+            while(commentTexts.size()<variantCommentCount){
+                commentTexts.add(descriptions.get(Math.abs(rand.nextInt())%descriptions.size()));
+            }
+
+
+            for(String commentText : commentTexts){
+                userId = Math.abs(rand.nextInt())%USER_COUNT+1;
+                commentId = Math.abs(rand.nextInt())%(COMMENT_COUNT+1);
+
+                query.append("('").append(id).append("','").append(userId).append("','")
+                        .append(commentText).append("','");
+
+                if(commentId==0){
+
+                }
+
+
+                id++;
+            }
+
+            if(i==VARIANT_COUNT-1){
+                res = query.toString().substring(0, query.toString().length()-2);
+                res+=";";
+            } else {
+                res = query.toString();
+            }
+
+            FileUtils.write(file, res, Charset.defaultCharset(), true);
+
+            res = "";
+            query = new StringBuilder();
+
+            COMMENT_COUNT += variantCommentCount;
+        }
     }
 }
 
