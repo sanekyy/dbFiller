@@ -3,10 +3,8 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Created by ihb on 01.04.17.
@@ -14,15 +12,27 @@ import java.util.Random;
 
 public class App {
 
+    private static File file;
+
     private static String SCRIPT_PATH = "src/main/resources/script";
 
-    private static String NICKNAMES_PATH = "src/main/resources/nicknames";
-    private static String EMAILS_PATH = "src/main/resources/emails";
-    private static String PASSWORDS_PATH = "src/main/resources/passwords";
-    private static String FIRST_NAMES_PATH = "src/main/resources/firstNames";
-    private static String LAST_NAMES_PATH = "src/main/resources/lastNames";
+    private static String USER_NICKNAMES_PATH = "src/main/resources/user/nicknames";
+    private static String USER_EMAILS_PATH = "src/main/resources/user/emails";
+    private static String USER_PASSWORDS_PATH = "src/main/resources/user/passwords";
+    private static String USER_FIRST_NAMES_PATH = "src/main/resources/user/firstNames";
+    private static String USER_LAST_NAMES_PATH = "src/main/resources/user/lastNames";
 
-    private static File file;
+    private static String COUNTRY_NAMES_AND_CODES_PATH = "src/main/resources/country/namesAndCodes";
+
+    private static String PREFERENCE_NAMES_PATH = "src/main/resources/preference/names";
+
+    private static int USER_COUNT = 100;
+    private static int COUNTRY_COUNT = 10;
+    private static int QUESTIONNAIRE_COUNT = USER_COUNT;
+    private static int PREFERENCE_COUNT = 5;
+
+    private static int USER_PREFERENCES_COUNT_DELTA = 5;
+    private static int USER_PREFERENCES_COUNT_FROM = 1;
 
     static Random rand = new Random(System.currentTimeMillis());
 
@@ -31,10 +41,14 @@ public class App {
         initFile();
 
         clearDB();
-
         createTables();
 
         generateUsers();
+        generateCountries();
+        generateQuestionnaire();
+        generatePreferences();
+        generateUserPreferences();
+
 
     }
 
@@ -192,33 +206,37 @@ public class App {
     }
 
     private static void generateUsers() throws IOException {
-        List<String> nicknames = new ArrayList<>(FileUtils.readLines(new File(NICKNAMES_PATH), Charset.defaultCharset()));
-        List<String> passwords = new ArrayList<>(FileUtils.readLines(new File(PASSWORDS_PATH), Charset.defaultCharset()));
-        List<String> emails = new ArrayList<>(FileUtils.readLines(new File(EMAILS_PATH), Charset.defaultCharset()));
-        List<String> firstNames = new ArrayList<>(FileUtils.readLines(new File(FIRST_NAMES_PATH), Charset.defaultCharset()));
-        List<String> lastNames = new ArrayList<>(FileUtils.readLines(new File(LAST_NAMES_PATH), Charset.defaultCharset()));
+        List<String> nicknames = new ArrayList<>(FileUtils.readLines(new File(USER_NICKNAMES_PATH), Charset.defaultCharset()));
+        List<String> passwords = new ArrayList<>(FileUtils.readLines(new File(USER_PASSWORDS_PATH), Charset.defaultCharset()));
+        List<String> emails = new ArrayList<>(FileUtils.readLines(new File(USER_EMAILS_PATH), Charset.defaultCharset()));
+        List<String> firstNames = new ArrayList<>(FileUtils.readLines(new File(USER_FIRST_NAMES_PATH), Charset.defaultCharset()));
+        List<String> lastNames = new ArrayList<>(FileUtils.readLines(new File(USER_LAST_NAMES_PATH), Charset.defaultCharset()));
 
-        long timeFrom = 1420070400; // 01/01/2015 @ 12:00am (UTC)
+        long timeFrom = 1262304000; // 01/01/2010 @ 12:00am (UTC)
         long timeTo = 1483228800; // 01/01/2017 @ 12:00am (UTC)
 
-        StringBuilder query = new StringBuilder("INSERT INTO user (id, nickname, password, email, first_name, last_name, date_of_registration, date_of_registration)\n"
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        StringBuilder query = new StringBuilder("INSERT INTO user (id, nickname, password, email, first_name, last_name, date_of_registration, date_of_last_visit)\n"
                 + "VALUES ");
 
 
+        for(int i=0; i<USER_COUNT; i++){
 
-        for(int i=0; i<100; i++){
+            long regTime = Math.abs(rand.nextLong())%(timeTo-timeFrom)+timeFrom;
+            long lastTime = (regTime+Math.abs(rand.nextLong())%(timeTo-regTime));
 
-            long regTime = rand.nextLong()%(timeTo-timeFrom)+timeFrom;
-            long lastTime = (regTime+rand.nextLong()%(timeTo-regTime));
+            String regTimeStr = dateFormat.format(new Date(regTime*1000));
+            String lastTimeStr = dateFormat.format(new Date(lastTime*1000));
 
-            query.append("(").append(i).append(",'").append(nicknames.get(i * 40)).append("','")
+            query.append("('").append(i+1).append("','").append(nicknames.get(i * 45)).append("','")
                     .append(passwords.get(i * 10 % passwords.size())).append("','")
                     .append(emails.get(i * 10 % emails.size())).append("','")
                     .append(firstNames.get(i * 10 % firstNames.size())).append("','")
-                    .append(lastNames.get(i * 10 % lastNames.size())).append("',")
-                    .append(regTime).append(",").append(lastTime).append(")");
+                    .append(lastNames.get(i * 10 % lastNames.size())).append("','")
+                    .append(regTimeStr).append("','").append(lastTimeStr).append("')");
 
-            if(i!=99){
+            if(i!=USER_COUNT-1){
                 query.append(",\n");
             }
         }
@@ -226,6 +244,112 @@ public class App {
         query.append(";");
 
         FileUtils.write(file, query.toString(), Charset.defaultCharset(), true);
+    }
+
+    private static void generateCountries() throws IOException {
+        List<String> namesAndCodes = new ArrayList<>(FileUtils.readLines(new File(COUNTRY_NAMES_AND_CODES_PATH), Charset.defaultCharset()));
+
+        StringBuilder query = new StringBuilder("INSERT INTO country (id, name, code)\n"
+                + "VALUES ");
+
+        for(int i=0; i<COUNTRY_COUNT; i++){
+
+            query.append("('").append(i+1).append("','").append(namesAndCodes.get(i).split("\\|")[0]).append("','")
+                    .append(namesAndCodes.get(i).split("\\|")[1]).append("')");
+
+            if(i!=COUNTRY_COUNT-1){
+                query.append(",\n");
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, query.toString(), Charset.defaultCharset(), true);
+    }
+
+    private static void generateQuestionnaire() throws IOException {
+
+        int age, sex, country;
+
+        StringBuilder query = new StringBuilder("INSERT INTO questionnaire (id, user_id, age, sex, country_id)\n"
+                + "VALUES ");
+
+        for(int i=0; i<QUESTIONNAIRE_COUNT; i++){
+
+            age = Math.abs(rand.nextInt())%20+16;
+            sex = Math.abs(rand.nextInt())%2;
+            country = Math.abs(rand.nextInt())%COUNTRY_COUNT+1;
+
+
+            query.append("('").append(i+1).append("','").append(i+1).append("','")
+                    .append(age).append("','").append(sex).append("','")
+                    .append(country).append("')");
+
+            if(i!=QUESTIONNAIRE_COUNT-1){
+                query.append(",\n");
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, query.toString(), Charset.defaultCharset(), true);
+    }
+
+    private static void generatePreferences() throws IOException {
+        List<String> names = new ArrayList<>(FileUtils.readLines(new File(PREFERENCE_NAMES_PATH), Charset.defaultCharset()));
+
+        StringBuilder query = new StringBuilder("INSERT INTO preference (id, name)\n"
+                + "VALUES ");
+
+        for(int i=0; i<PREFERENCE_COUNT; i++){
+
+            query.append("('").append(i+1).append("','").append(names.get(i)).append("')");
+
+            if(i!=PREFERENCE_COUNT-1){
+                query.append(",\n");
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, query.toString(), Charset.defaultCharset(), true);
+    }
+
+    private static void generateUserPreferences() throws IOException {
+
+        int prefCount;
+        int id=1;
+
+        String res = "";
+
+        StringBuilder query = new StringBuilder("INSERT INTO user_preferences (id, preference_id, user_id)\n"
+                + "VALUES ");
+
+        for(int i=0; i<USER_COUNT; i++){
+            prefCount = Math.abs(rand.nextInt())%USER_PREFERENCES_COUNT_DELTA+USER_PREFERENCES_COUNT_FROM;
+            Set<Integer> preferences = new HashSet<>();
+
+            while(preferences.size()<prefCount){
+                preferences.add(Math.abs(rand.nextInt())%PREFERENCE_COUNT+1);
+            }
+
+
+            for(Integer pref : preferences){
+
+                query.append("('").append(id).append("','").append(pref).append("','")
+                        .append(i+1).append("'),\n");
+
+                id++;
+            }
+            if(i==USER_COUNT-1){
+                res = query.toString().substring(0, query.toString().length()-2);
+                res+=";";
+            }
+        }
+
+        query.append(";");
+
+        FileUtils.write(file, res, Charset.defaultCharset(), true);
     }
 }
 
