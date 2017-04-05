@@ -66,10 +66,6 @@ public class App {
 
         initFile();
 
-        FileUtils.write(new File(POST_DESCRIPTIONS_PATH+1),
-                FileUtils.readFileToString(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset()).replaceAll("[\\[\\]\"{}()']",""),
-                Charset.defaultCharset(), false);
-
 
         clearDB();
         createTables();
@@ -85,7 +81,9 @@ public class App {
         generateComment();
 
 
-
+        /*FileUtils.write(new File(POST_DESCRIPTIONS_PATH+1),
+                FileUtils.readFileToString(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset()).replaceAll("[\\[\\]\"{}()']",""),
+                Charset.defaultCharset(), false);*/
     }
 
     private static void initFile() throws IOException {
@@ -109,8 +107,8 @@ public class App {
         String user = "CREATE TABLE IF NOT EXISTS\n" +
                 "    `user` (\n" +
                 "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `nickname` VARCHAR(100) NOT NULL UNIQUE,\n" +
-                "        `password` VARCHAR(100) NOT NULL,\n" +
+                "        `nickname` VARCHAR(50) NOT NULL UNIQUE,\n" +
+                "        `password` VARCHAR(50) NOT NULL,\n" +
                 "        `email` VARCHAR(100) NOT NULL UNIQUE,\n" +
                 "        `first_name` VARCHAR(100) NOT NULL,\n" +
                 "        `last_name` VARCHAR(100) NOT NULL,\n" +
@@ -155,44 +153,6 @@ public class App {
                 "        FOREIGN KEY (preference_id) REFERENCES preference(id)\n" +
                 "    );\n";
 
-        String device = "CREATE TABLE IF NOT EXISTS\n" +
-                "    `device` (\n" +
-                "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `type` VARCHAR(100) NOT NULL,\n" +
-                "        `name` VARCHAR(100) NOT NULL,\n" +
-                "        PRIMARY KEY(`id`)\n" +
-                "    );\n";
-
-        String token = "CREATE TABLE IF NOT EXISTS\n" +
-                "    `token` (\n" +
-                "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `user_id` INT NOT NULL,\n" +
-                "        `key` VARCHAR(100) NOT NULL UNIQUE,\n" +
-                "        `end_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
-                "        `creation_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
-                "        `device_id` INT NOT NULL,\n" +
-                "        PRIMARY KEY(`id`),\n" +
-                "        FOREIGN KEY (user_id) REFERENCES user(id),\n" +
-                "        FOREIGN KEY (device_id) REFERENCES device(id)\n" +
-                "    );\n";
-
-        String permission = "CREATE TABLE IF NOT EXISTS\n" +
-                "    `permission` (\n" +
-                "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `name` VARCHAR(100) NOT NULL UNIQUE,\n" +
-                "        PRIMARY KEY(`id`)\n" +
-                "    );\n";
-
-        String token_permissions = "CREATE TABLE IF NOT EXISTS\n" +
-                "    `token_permissions` (\n" +
-                "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
-                "        `token_id` INT NOT NULL,\n" +
-                "        `permission_id` INT NOT NULL,\n" +
-                "        PRIMARY KEY(`id`),\n" +
-                "        FOREIGN KEY (token_id) REFERENCES token(id),\n" +
-                "        FOREIGN KEY (permission_id) REFERENCES permission(id)\n" +
-                "    );\n";
-
         String post = "CREATE TABLE IF NOT EXISTS\n" +
                 "    `post` (\n" +
                 "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
@@ -217,10 +177,12 @@ public class App {
                 "    `comment` (\n" +
                 "        `id` INT NOT NULL AUTO_INCREMENT,\n" +
                 "        `user_id` INT NOT NULL,\n" +
+                "        `variant_id` INT NOT NULL,\n" +
                 "        `text` TEXT(300) NOT NULL,\n" +
                 "        `comment_id` INT,\n" +
                 "        PRIMARY KEY(`id`),\n" +
                 "        FOREIGN KEY (user_id) REFERENCES user(id),\n" +
+                "        FOREIGN KEY (variant_id) REFERENCES variant(id),\n" +
                 "        FOREIGN KEY (comment_id) REFERENCES comment(id)\n" +
                 "    );\n";
 
@@ -235,8 +197,7 @@ public class App {
                 "    );\n";
 
         FileUtils.write(file, user + country + questionnaire + preference
-                + user_preferences + device + token + permission + token_permissions
-                + post + variant + comment + vote
+                + user_preferences + post + variant + comment + vote
         , Charset.defaultCharset(), true);
 
     }
@@ -522,7 +483,7 @@ public class App {
 
         String res = "";
 
-        StringBuilder query = new StringBuilder("INSERT INTO comment (id, user_id, text, comment_id)\n"
+        StringBuilder query = new StringBuilder("INSERT INTO comment (id, user_id, variant_id, text, comment_id)\n"
                 + "VALUES ");
 
         for(int i=0; i<VARIANT_COUNT; i++){
@@ -539,10 +500,12 @@ public class App {
                 commentId = Math.abs(rand.nextInt())%(COMMENT_COUNT+1);
 
                 query.append("('").append(id).append("','").append(userId).append("','")
-                        .append(commentText).append("','");
+                        .append(i+1).append("','").append(commentText).append("',");
 
                 if(commentId==0){
-
+                    query.append("NULL),\n");
+                } else {
+                    query.append("'").append(commentId).append("'),\n");
                 }
 
 
