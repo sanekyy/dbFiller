@@ -81,6 +81,8 @@ public class App {
         generateComment();
 
 
+
+
         /*FileUtils.write(new File(POST_DESCRIPTIONS_PATH+1),
                 FileUtils.readFileToString(new File(POST_DESCRIPTIONS_PATH), Charset.defaultCharset()).replaceAll("[\\[\\]\"{}()']",""),
                 Charset.defaultCharset(), false);*/
